@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2023-02-02 jue 17:09 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Splitting a list into approximatedly-equal sublists.</title>
+<meta name="author" content="Alejandro Linarez Rangel" />
+<meta name="generator" content="Org Mode" />
+<style>
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        displayAlign: "center",
+        displayIndent: "0em",
+
+        "HTML-CSS": { scale: 100,
+                        linebreaks: { automatic: "false" },
+                        webFont: "TeX"
+                       },
+        SVG: {scale: 100,
+              linebreaks: { automatic: "false" },
+              font: "TeX"},
+        NativeMML: {scale: 100},
+        TeX: { equationNumbers: {autoNumber: "AMS"},
+               MultLineWidth: "85%",
+               TagSide: "right",
+               TagIndent: ".8em"
+             }
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS_HTML"></script>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Splitting a list into approximatedly-equal sublists.</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org83b65ed">1. Splitting a list into approximatedly-equal sublists.</a>
+<ul>
+<li><a href="#org35a6f14">1.1. Problem</a></li>
+<li><a href="#orgb8e7f0e">1.2. A simple solution</a></li>
+<li><a href="#orga2c2d54">1.3. Appendix A: The utility functions</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org83b65ed" class="outline-2">
+<h2 id="org83b65ed"><span class="section-number-2">1.</span> Splitting a list into approximatedly-equal sublists.</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+I am going to use the terms "list", "array" and "sequence" interchangeably.
+</p>
+
+<p>
+Also remember that in Lua arrays are called "sequential tables".
+</p>
+</div>
+
+<div id="outline-container-org35a6f14" class="outline-3">
+<h3 id="org35a6f14"><span class="section-number-3">1.1.</span> Problem</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+We have a list \(A\) with \(m\) elements and another number \(n\). We want to split
+the list \(A\) into exactly \(n\) approximatedly-equal sublists. Let's call this
+operation \(\mbox{split}(A, n)\).
+</p>
+
+<p>
+We can assume that \(m >= n\) and \(n > 0\). The algorithm should be
+\(\mbox{O}(mk_1 + nk_2)\). Other constraints include:
+</p>
+
+<ul class="org-ul">
+<li>The returned sublists must be in order. More specifically, for any 2
+sublists \(L_i\) and \(L_j\) found at the indexes \(i\) and \(j\) of the returned
+list of lists, it must be the case that if \(i < j\) then \(\forall w \in L_i,
+   x \in L_j. x \lessdot w\) where \(a \lessdot b\) means that \(a\) appears before
+\(b\) on the original list \(A\).</li>
+<li>The returned sublists must only consist of consecutive elements from \(A\).</li>
+</ul>
+
+<p>
+These constraints can be represented as the requirement that concatenating all
+of the resulting sublists in their returned order must result in an array equal
+to \(A\).
+</p>
+
+<p>
+What to do if there is no way to evenly divide \(m\) elements into \(n\) sublists?
+In that case, some of the sublists are going to have varying lengths. In this
+case, it is important that the sublists are as close to being evenly-sized as
+possible.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgb8e7f0e" class="outline-3">
+<h3 id="orgb8e7f0e"><span class="section-number-3">1.2.</span> A simple solution</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+As the actual elements of the array are never inspected and must always be
+taken consecutively, we can represent the result of this function by a simple
+list of numbers. Each number is the length of the list that should be
+generated. For example, given \(A = \left[0, 1, 2, 3, 4, 5, 6, 7, 8, 9\right]\)
+the solution \(\left[1, 8, 1\right]\) represents the resulting list
+\(\left[\left[0\right], \left[1, 2, 3, 4, 5, 6, 7, 8\right],
+\left[9\right]\right]\), while the solution \(\left[5, 5\right]\) represents
+\(\left[\left[0, 1, 2, 3, 4\right], \left[5, 6, 7, 8, 9\right]\right]\). Let's
+call this operation \(\mbox{split}'(m, n)\).
+</p>
+
+<p>
+This representation naturally provides us with some invariants: let \(R\) be our
+resulting list of numbers, then:
+</p>
+
+\begin{equation}
+\sum_i R_i = m
+\end{equation}
+
+\begin{equation}
+\#R = n
+\end{equation}
+
+<p>
+Where the notation \(\#L\) is the length of the list \(L\), \(a \mid b\) means that
+\(a\) divides \(b\) (in other words, \(b \text{ mod } a = 0\)) and \(a \nmid b\) means
+that \(a\) doesn't divide \(b\).
+</p>
+
+<p>
+With this in mind, we can divide the problem into a series of cases:
+</p>
+
+<ol class="org-ol">
+<li><p>
+If \(n = 1\) then return the entire input list \(\left[m\right]\).
+</p>
+
+<p>
+<i>split-helper-impl:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua"><span style="color: #a626a4;">if</span> n == 1 <span style="color: #a626a4;">then</span>
+   <span style="color: #a626a4;">return</span> {m}
+<span style="color: #a626a4;">end</span>
+</pre>
+</div></li>
+<li><p>
+If \(n|m\) then the input list can be evenly split into \(n\) sublists: \(\left[ \frac{m}{n} \cdots n \text{ times}\right]\).
+</p>
+
+<p>
+This keeps the invariants, as \(\sum^n \frac{m}{n} = n\frac{m}{n} =
+    \frac{mn}{n} = m\) and the resulting list has \(n\) elements.
+</p>
+
+<p>
+<i>split-helper-impl:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua"><span style="color: #a626a4;">if</span> m % n == 0 <span style="color: #a626a4;">then</span>
+   <span style="color: #a626a4;">return</span> rept(m // n, n)
+<span style="color: #a626a4;">end</span>
+</pre>
+</div>
+
+<p>
+<code>rept(x, n)</code> is a function that returns \(\left[x \cdots n \text{
+    times}\right]\).
+</p></li>
+<li><p>
+Otherwise, let \(g = \text{MCD}(m, n)\).
+</p>
+
+<p>
+<i>split-helper-impl:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua"><span style="color: #a626a4;">local</span> <span style="color: #8b4513;">g</span> = gcd(m, n)
+</pre>
+</div>
+
+<ol class="org-ol">
+<li><p>
+If \(g > 1\) then return
+\(\mbox{flatten}\left(\left[\mbox{split}'\left(\frac{m}{g},
+       \frac{n}{g}\right) \cdots g\text{ times}\right]\right)\), where
+\(\mbox{flatten}\) removes one level of nesting of a list of lists:
+\(\mbox{flatten}\left(\left[\left[1, 2, 3\right], \left[\left[4,
+       5\right]\right], \left[\right], \left[6\right]\right]\right) = \left[1, 2,
+       3, \left[4, 5\right], 6\right]\).
+</p>
+
+<p>
+<i>split-helper-impl:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua"><span style="color: #a626a4;">if</span> g &gt; 1 <span style="color: #a626a4;">then</span>
+   <span style="color: #a626a4;">return</span> flatten(rept(split_helper(m // g, n // g), g))
+<span style="color: #a626a4;">end</span>
+</pre>
+</div>
+
+<p>
+This satisfies the second invariant because each inner \(\mbox{split}'\)
+will return \(\frac{n}{g}\) elements and there are \(g\) of them, so
+\(\frac{n}{g}g = n\),
+</p>
+
+<p>
+The first invariant is not more complex: again, by definition each inner
+list will have \(\frac{m}{g}\) elements, as there are \(g\) of them the sum of
+the numbers inside is \(\frac{m}{g}g = m\).
+</p></li>
+
+<li><p>
+If \(g = 1\) (\(n\) and \(m\) are coprime) things get more complex, as the
+list cannot be evenly split into \(n\) sublists. We work around this by
+<i>distributing</i> the extra elements into the already existing ones.
+</p>
+
+<p>
+<i>split-helper-impl:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua"><span style="color: #e44649;">assert</span>(g == 1)
+</pre>
+</div>
+
+<ol class="org-ol">
+<li><p>
+Let \(e = m \text{ mod } n\) and \(m' = m - e\). \(m'\) is actually divisible
+by \(n\) as we removed the "extra" elements.
+</p>
+
+<p>
+<i>split-helper-impl:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua"><span style="color: #a626a4;">local</span> <span style="color: #8b4513;">e</span> = m % n
+<span style="color: #a626a4;">local</span> <span style="color: #8b4513;">mp</span> = m - e
+</pre>
+</div></li>
+
+<li><p>
+Let \(R' = \mbox{split}'\left(m', n\right)\).
+</p>
+
+<p>
+<i>split-helper-impl:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua"><span style="color: #a626a4;">local</span> <span style="color: #8b4513;">Rp</span> = split_helper(mp, n)
+</pre>
+</div></li>
+
+<li><p>
+We now have \(e\) elements to distribute in \(R'\) (the \(e\) elements that
+we removed from \(m\)). In order to try to distribute them evenly, we
+will try to add them to \(R'\) only where absolutely necessary: let \(f =
+          \frac{e}{n}\), \(f\) is the number of elements we need leave in between
+our additions. Because \(e < n\) then \(0 \leq f < n\) so we need a way to
+decide what to do with fractional values.
+</p>
+
+<p>
+We go for every element \(x_i\) of \(R'\) if \(i > 1\) (lists are
+1-indexed):
+</p>
+
+<p>
+<i>main-loop:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua" id="org54ae21b"><span style="color: #a626a4;">for</span> <span style="color: #8b4513;">i</span> = 2, #Rp <span style="color: #a626a4;">do</span>
+   &lt;&lt;loop-body&gt;&gt;
+<span style="color: #a626a4;">end</span>
+</pre>
+</div>
+
+<p>
+Let \(a = \left(e(i - 1) \text{ mod } n\right)\) and \(d =
+          \lfloor\frac{a + e}{n}\rfloor\).
+</p>
+
+<p>
+<i>loop-body:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua"><span style="color: #a626a4;">local</span> <span style="color: #8b4513;">a</span> = (e * (i - 1)) % n
+<span style="color: #a626a4;">local</span> <span style="color: #8b4513;">d</span> = <span style="color: #e44649;">math</span>.<span style="color: #e44649;">floor</span>((a + e) / n)
+</pre>
+</div>
+
+<p>
+Now we create a second list \(R''\) of the same size as \(R'\), where
+each element \(R''_i = R'_i\) lf \(a + e < n\) or \(R'_i + d\) otherwise.
+</p>
+
+<p>
+<i>loop-body:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua"><span style="color: #a626a4;">if</span> a + e &lt; n <span style="color: #a626a4;">then</span>
+   Rpp[i] = Rp[i]
+<span style="color: #a626a4;">else</span>
+   Rpp[i] = Rp[i] + d
+<span style="color: #a626a4;">end</span>
+</pre>
+</div>
+
+<p>
+<i>split-helper-impl:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua"><span style="color: #a626a4;">local</span> <span style="color: #8b4513;">Rpp</span> = {}
+<span style="color: #e44649;">assert</span>(#Rp &gt; 0)
+Rpp[1] = Rp[1]
+
+&lt;&lt;main-loop&gt;&gt;
+</pre>
+</div>
+
+<p>
+This correction step will distribute the \(e\) extra elements over
+\(R'\). The \(\text{mod } n\) part in \(a\) only exists because we only need
+to compare if the <b>current</b> element needs to be adjusted and without
+the \(\text{mod } n\) we would be checking if this or any previous
+element needs to be adjusted. As such, the condition will only hold
+\(\frac{en}{n}\) times: \(en\) for the \(ei\) (from \(e(i - 1) + e\), which
+itself takes \(e(i - 1)\) from \(a\) and the \(a + e\) from the condition)
+and the denominator of \(n\) comes from the fact that only the times it
+surpasses \(n\) (due to \(a + e \geq n\)) count. This \(\frac{en}{n} = e\)
+and so the condition holds \(e\) times.
+</p>
+
+<p>
+Now, if the condition holds \(e\) times this means that \(\lfloor\frac{a +
+          e}{n}\rfloor = 1\) as otherwise we would be over-adjusting the
+list. Indeed, remember that \(e < n\) and as such the difference between
+\(a\) and \(a + e\) cannot be greater than \(n\) and so \(1 \leq \frac{a +
+          e}{n} < 2\). Take into account the condition and you get \(1 \leq
+          \frac{a + e}{n} < 2\) and so \(\lfloor\frac{a + e}{n}\rfloor = 1\).
+</p></li>
+
+<li><p>
+\(R''\) is the result.
+</p>
+
+<p>
+<i>split-helper-impl:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua"><span style="color: #a626a4;">return</span> Rpp
+</pre>
+</div></li>
+</ol></li>
+</ol></li>
+</ol>
+
+<p>
+After wrapping all of this in a function <code>split_helper</code> (which implements
+\(\mbox{split}'\)):
+</p>
+
+<p>
+<i>split-helper:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua" id="org3d502e5"><span style="color: #a626a4;">function</span> <span style="color: #0184bc;">split_helper</span>(<span style="color: #8b4513;">m</span>, <span style="color: #8b4513;">n</span>)
+   <span style="color: #e44649;">assert</span>(m &gt;= n, <span style="color: #50a14f;">"cannot split an m-elements array into n parts if n &gt; m"</span>)
+   <span style="color: #e44649;">assert</span>(n &gt;= 1, <span style="color: #50a14f;">"n must be greater than or equal to 1 when splitting"</span>)
+   &lt;&lt;split-helper-impl&gt;&gt;
+<span style="color: #a626a4;">end</span>
+</pre>
+</div>
+
+<p>
+We can finally implement the main \(\mbox{split}\) function:
+</p>
+
+<p>
+<i>split:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua" id="org1291101">&lt;&lt;utils&gt;&gt;
+
+&lt;&lt;split-helper&gt;&gt;
+
+<span style="color: #a626a4;">function</span> <span style="color: #0184bc;">split</span>(<span style="color: #8b4513;">arr</span>, <span style="color: #8b4513;">n</span>)
+   <span style="color: #a626a4;">local</span> <span style="color: #8b4513;">lens</span> = split_helper(#arr, n)
+   <span style="color: #e44649;">assert</span>(sum(lens) == #arr)
+   <span style="color: #e44649;">assert</span>(#lens == n)
+   <span style="color: #a626a4;">local</span> <span style="color: #8b4513;">r</span> = {}
+   <span style="color: #a626a4;">local</span> <span style="color: #8b4513;">p</span> = 1
+   <span style="color: #a626a4;">for</span> <span style="color: #8b4513;">i</span> = 1, #lens <span style="color: #a626a4;">do</span>
+      <span style="color: #a626a4;">local</span> <span style="color: #8b4513;">len</span> = lens[i]
+      r[#r + 1] = {}
+      <span style="color: #e44649;">table</span>.<span style="color: #e44649;">move</span>(arr, p, p + len - 1, 1, r[#r])
+      p = p + len
+   <span style="color: #a626a4;">end</span>
+   <span style="color: #a626a4;">return</span> r
+<span style="color: #a626a4;">end</span>
+</pre>
+</div>
+</div>
+</div>
+
+
+
+<div id="outline-container-orga2c2d54" class="outline-3">
+<h3 id="orga2c2d54"><span class="section-number-3">1.3.</span> Appendix A: The utility functions</h3>
+<div class="outline-text-3" id="text-1-3">
+<p>
+<i>utils:</i>
+</p>
+<div class="org-src-container">
+<pre class="src src-lua" id="org8d4999f"><span style="color: #a0a1a7; font-weight: bold;">-- </span><span style="color: #a0a1a7;">Our flatten function. Flattens a table of tables.</span>
+<span style="color: #a626a4;">function</span> <span style="color: #0184bc;">flatten</span>(<span style="color: #8b4513;">tbls</span>)
+   <span style="color: #a626a4;">local</span> <span style="color: #8b4513;">r</span> = {}
+   <span style="color: #a626a4;">for</span> <span style="color: #8b4513;">i</span> = 1, #tbls <span style="color: #a626a4;">do</span>
+      <span style="color: #a626a4;">local</span> <span style="color: #8b4513;">tbl</span> = tbls[i]
+      <span style="color: #e44649;">table</span>.<span style="color: #e44649;">move</span>(tbl, 1, #tbl, #r + 1, r)
+   <span style="color: #a626a4;">end</span>
+   <span style="color: #a626a4;">return</span> r
+<span style="color: #a626a4;">end</span>
+
+<span style="color: #a0a1a7; font-weight: bold;">-- </span><span style="color: #a0a1a7;">Sum all the values in a list.</span>
+<span style="color: #a626a4;">function</span> <span style="color: #0184bc;">sum</span>(<span style="color: #8b4513;">arr</span>)
+   <span style="color: #a626a4;">local</span> <span style="color: #8b4513;">r</span> = 0
+   <span style="color: #a626a4;">for</span> <span style="color: #8b4513;">i</span> = 1, #arr <span style="color: #a626a4;">do</span>
+      r = r + arr[i]
+   <span style="color: #a626a4;">end</span>
+   <span style="color: #a626a4;">return</span> r
+<span style="color: #a626a4;">end</span>
+
+<span style="color: #a626a4;">function</span> <span style="color: #0184bc;">gcd</span>(<span style="color: #8b4513;">a</span>, <span style="color: #8b4513;">b</span>)
+   <span style="color: #a626a4;">if</span> b == 0 <span style="color: #a626a4;">then</span>
+      <span style="color: #a626a4;">return</span> a
+   <span style="color: #a626a4;">else</span>
+      <span style="color: #a626a4;">return</span> gcd(b, a % b)
+   <span style="color: #a626a4;">end</span>
+<span style="color: #a626a4;">end</span>
+
+<span style="color: #a0a1a7; font-weight: bold;">-- </span><span style="color: #a0a1a7;">Return a list containing el n-times.</span>
+<span style="color: #a626a4;">function</span> <span style="color: #0184bc;">rept</span>(<span style="color: #8b4513;">el</span>, <span style="color: #8b4513;">n</span>)
+   <span style="color: #a626a4;">local</span> <span style="color: #8b4513;">r</span> = {}
+   <span style="color: #a626a4;">for</span> <span style="color: #8b4513;">i</span> = 1, n <span style="color: #a626a4;">do</span>
+      r[#r + 1] = el
+   <span style="color: #a626a4;">end</span>
+   <span style="color: #a626a4;">return</span> r
+<span style="color: #a626a4;">end</span>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Alejandro Linarez Rangel</p>
+<p class="date">Created: 2023-02-02 jue 17:09</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

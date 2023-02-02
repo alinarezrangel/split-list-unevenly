@@ -1,0 +1,297 @@
+#+title: Splitting a list into approximatedly-equal sublists.
+#+author: Alejandro Linarez Rangel
+
+* Splitting a list into approximatedly-equal sublists.
+:PROPERTIES:
+:header-args: :noweb no-export
+:END:
+
+I am going to use the terms "list", "array" and "sequence" interchangeably.
+
+Also remember that in Lua arrays are called "sequential tables".
+
+** Problem
+
+We have a list $A$ with $m$ elements and another number $n$. We want to split
+the list $A$ into exactly $n$ approximatedly-equal sublists. Let's call this
+operation $\mbox{split}(A, n)$.
+
+We can assume that $m >= n$ and $n > 0$. The algorithm should be
+$\mbox{O}(mk_1 + nk_2)$. Other constraints include:
+
+ - The returned sublists must be in order. More specifically, for any 2
+   sublists $L_i$ and $L_j$ found at the indexes $i$ and $j$ of the returned
+   list of lists, it must be the case that if $i < j$ then $\forall w \in L_i,
+   x \in L_j. x \lessdot w$ where $a \lessdot b$ means that $a$ appears before
+   $b$ on the original list $A$.
+ - The returned sublists must only consist of consecutive elements from $A$.
+
+These constraints can be represented as the requirement that concatenating all
+of the resulting sublists in their returned order must result in an array equal
+to $A$.
+
+What to do if there is no way to evenly divide $m$ elements into $n$ sublists?
+In that case, some of the sublists are going to have varying lengths. In this
+case, it is important that the sublists are as close to being evenly-sized as
+possible.
+
+** A simple solution
+
+As the actual elements of the array are never inspected and must always be
+taken consecutively, we can represent the result of this function by a simple
+list of numbers. Each number is the length of the list that should be
+generated. For example, given $A = \left[0, 1, 2, 3, 4, 5, 6, 7, 8, 9\right]$
+the solution $\left[1, 8, 1\right]$ represents the resulting list
+$\left[\left[0\right], \left[1, 2, 3, 4, 5, 6, 7, 8\right],
+\left[9\right]\right]$, while the solution $\left[5, 5\right]$ represents
+$\left[\left[0, 1, 2, 3, 4\right], \left[5, 6, 7, 8, 9\right]\right]$. Let's
+call this operation $\mbox{split}'(m, n)$.
+
+This representation naturally provides us with some invariants: let $R$ be our
+resulting list of numbers, then:
+
+\begin{equation}
+\sum_i R_i = m
+\end{equation}
+
+\begin{equation}
+\#R = n
+\end{equation}
+
+Where the notation $\#L$ is the length of the list $L$, $a \mid b$ means that
+$a$ divides $b$ (in other words, $b \text{ mod } a = 0$) and $a \nmid b$ means
+that $a$ doesn't divide $b$.
+
+With this in mind, we can divide the problem into a series of cases:
+
+ 1. If $n = 1$ then return the entire input list $\left[m\right]$.
+
+    /split-helper-impl:/
+    #+begin_src lua :noweb-ref split-helper-impl
+      if n == 1 then
+         return {m}
+      end
+    #+end_src
+ 2. If $n|m$ then the input list can be evenly split into $n$ sublists: $\left[ \frac{m}{n} \cdots n \text{ times}\right]$.
+
+    This keeps the invariants, as $\sum^n \frac{m}{n} = n\frac{m}{n} =
+    \frac{mn}{n} = m$ and the resulting list has $n$ elements.
+
+    /split-helper-impl:/
+    #+begin_src lua :noweb-ref split-helper-impl
+      if m % n == 0 then
+         return rept(m // n, n)
+      end
+    #+end_src
+
+    ~rept(x, n)~ is a function that returns $\left[x \cdots n \text{
+    times}\right]$.
+ 3. Otherwise, let $g = \text{MCD}(m, n)$.
+
+    /split-helper-impl:/
+    #+begin_src lua :noweb-ref split-helper-impl
+      local g = gcd(m, n)
+    #+end_src
+
+    1. If $g > 1$ then return
+       $\mbox{flatten}\left(\left[\mbox{split}'\left(\frac{m}{g},
+       \frac{n}{g}\right) \cdots g\text{ times}\right]\right)$, where
+       $\mbox{flatten}$ removes one level of nesting of a list of lists:
+       $\mbox{flatten}\left(\left[\left[1, 2, 3\right], \left[\left[4,
+       5\right]\right], \left[\right], \left[6\right]\right]\right) = \left[1, 2,
+       3, \left[4, 5\right], 6\right]$.
+
+       /split-helper-impl:/
+       #+begin_src lua :noweb-ref split-helper-impl
+         if g > 1 then
+            return flatten(rept(split_helper(m // g, n // g), g))
+         end
+       #+end_src
+
+       This satisfies the second invariant because each inner $\mbox{split}'$
+       will return $\frac{n}{g}$ elements and there are $g$ of them, so
+       $\frac{n}{g}g = n$,
+
+       The first invariant is not more complex: again, by definition each inner
+       list will have $\frac{m}{g}$ elements, as there are $g$ of them the sum of
+       the numbers inside is $\frac{m}{g}g = m$.
+
+    2. If $g = 1$ ($n$ and $m$ are coprime) things get more complex, as the
+       list cannot be evenly split into $n$ sublists. We work around this by
+       /distributing/ the extra elements into the already existing ones.
+
+       /split-helper-impl:/
+       #+begin_src lua :noweb-ref split-helper-impl
+         assert(g == 1)
+       #+end_src
+
+       1. Let $e = m \text{ mod } n$ and $m' = m - e$. $m'$ is actually divisible
+          by $n$ as we removed the "extra" elements.
+
+          /split-helper-impl:/
+          #+begin_src lua :noweb-ref split-helper-impl
+            local e = m % n
+            local mp = m - e
+          #+end_src
+
+       2. Let $R' = \mbox{split}'\left(m', n\right)$.
+
+          /split-helper-impl:/
+          #+begin_src lua :noweb-ref split-helper-impl
+            local Rp = split_helper(mp, n)
+          #+end_src
+
+       3. We now have $e$ elements to distribute in $R'$ (the $e$ elements that
+          we removed from $m$). In order to try to distribute them evenly, we
+          will try to add them to $R'$ only where absolutely necessary: let $f =
+          \frac{e}{n}$, $f$ is the number of elements we need leave in between
+          our additions. Because $e < n$ then $0 \leq f < n$ so we need a way to
+          decide what to do with fractional values.
+
+          We go for every element $x_i$ of $R'$ if $i > 1$ (lists are
+          1-indexed):
+
+          /main-loop:/
+          #+name: main-loop
+          #+begin_src lua :noweb-ref main-loop
+            for i = 2, #Rp do
+               <<loop-body>>
+            end
+          #+end_src
+
+          Let $a = \left(e(i - 1) \text{ mod } n\right)$ and $d =
+          \lfloor\frac{a + e}{n}\rfloor$.
+
+          /loop-body:/
+          #+begin_src lua :noweb-ref loop-body
+            local a = (e * (i - 1)) % n
+            local d = math.floor((a + e) / n)
+          #+end_src
+
+          Now we create a second list $R''$ of the same size as $R'$, where
+          each element $R''_i = R'_i$ lf $a + e < n$ or $R'_i + d$ otherwise.
+
+          /loop-body:/
+          #+begin_src lua :noweb-ref loop-body
+            if a + e < n then
+               Rpp[i] = Rp[i]
+            else
+               Rpp[i] = Rp[i] + d
+            end
+          #+end_src
+
+          /split-helper-impl:/
+          #+begin_src lua :noweb-ref split-helper-impl
+            local Rpp = {}
+            assert(#Rp > 0)
+            Rpp[1] = Rp[1]
+
+            <<main-loop>>
+          #+end_src
+
+          This correction step will distribute the $e$ extra elements over
+          $R'$. The $\text{mod } n$ part in $a$ only exists because we only need
+          to compare if the *current* element needs to be adjusted and without
+          the $\text{mod } n$ we would be checking if this or any previous
+          element needs to be adjusted. As such, the condition will only hold
+          $\frac{en}{n}$ times: $en$ for the $ei$ (from $e(i - 1) + e$, which
+          itself takes $e(i - 1)$ from $a$ and the $a + e$ from the condition)
+          and the denominator of $n$ comes from the fact that only the times it
+          surpasses $n$ (due to $a + e \geq n$) count. This $\frac{en}{n} = e$
+          and so the condition holds $e$ times.
+
+          Now, if the condition holds $e$ times this means that $\lfloor\frac{a +
+          e}{n}\rfloor = 1$ as otherwise we would be over-adjusting the
+          list. Indeed, remember that $e < n$ and as such the difference between
+          $a$ and $a + e$ cannot be greater than $n$ and so $1 \leq \frac{a +
+          e}{n} < 2$. Take into account the condition and you get $1 \leq
+          \frac{a + e}{n} < 2$ and so $\lfloor\frac{a + e}{n}\rfloor = 1$.
+
+       4. $R''$ is the result.
+
+          /split-helper-impl:/
+          #+begin_src lua :noweb-ref split-helper-impl
+            return Rpp
+          #+end_src
+
+After wrapping all of this in a function ~split_helper~ (which implements
+$\mbox{split}'$):
+
+/split-helper:/
+#+name: split-helper
+#+begin_src lua
+  function split_helper(m, n)
+     assert(m >= n, "cannot split an m-elements array into n parts if n > m")
+     assert(n >= 1, "n must be greater than or equal to 1 when splitting")
+     <<split-helper-impl>>
+  end
+#+end_src
+
+We can finally implement the main $\mbox{split}$ function:
+
+/split:/
+#+name: split
+#+begin_src lua :tangle yes
+  <<utils>>
+
+  <<split-helper>>
+
+  function split(arr, n)
+     local lens = split_helper(#arr, n)
+     assert(sum(lens) == #arr)
+     assert(#lens == n)
+     local r = {}
+     local p = 1
+     for i = 1, #lens do
+        local len = lens[i]
+        r[#r + 1] = {}
+        table.move(arr, p, p + len - 1, 1, r[#r])
+        p = p + len
+     end
+     return r
+  end
+#+end_src
+
+
+
+** Appendix A: The utility functions
+
+/utils:/
+#+name: utils
+#+begin_src lua
+  -- Our flatten function. Flattens a table of tables.
+  function flatten(tbls)
+     local r = {}
+     for i = 1, #tbls do
+        local tbl = tbls[i]
+        table.move(tbl, 1, #tbl, #r + 1, r)
+     end
+     return r
+  end
+
+  -- Sum all the values in a list.
+  function sum(arr)
+     local r = 0
+     for i = 1, #arr do
+        r = r + arr[i]
+     end
+     return r
+  end
+
+  function gcd(a, b)
+     if b == 0 then
+        return a
+     else
+        return gcd(b, a % b)
+     end
+  end
+
+  -- Return a list containing el n-times.
+  function rept(el, n)
+     local r = {}
+     for i = 1, n do
+        r[#r + 1] = el
+     end
+     return r
+  end
+#+end_src
